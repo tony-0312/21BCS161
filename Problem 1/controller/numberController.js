@@ -1,5 +1,6 @@
 const NumberService = require('../services/numberService');
 const responseView = require('../views/responseView');
+const Number = require('../model/numberModel')
 
 const getNumbers = async (req, res) => {
   const numberId = req.params.numberid;
@@ -14,4 +15,17 @@ const getNumbers = async (req, res) => {
   }
 };
 
-module.exports = { getNumbers };
+const insertNumbers = async(req, res)=>{
+
+    const number = new Number(req.body)
+    try{
+        const n1 = await number.save()
+        res.status(200).json(n1)
+    }catch(err){
+      res.status(403).send('Error'+err)
+    }
+};
+
+module.exports = { getNumbers : getNumbers,
+  insertNumbers : insertNumbers
+ };
