@@ -1,0 +1,40 @@
+const axios = require('axios');
+const Number = require('../model/numberModel');
+
+const fetchFromTestServer = async (numberId) => {
+  try {
+    const response = await axios.get(`http://test-server/numbers/${numberId}`, { timeout: 500 });
+    return response.data.numbers;
+  } catch (error) {
+    throw new Error('Error fetching numbers from test server');
+  }
+};
+
+const fetchAndStoreNumbers = async (numberId, windowSize) => {
+  const numbers = await fetchFromTestServer(numberId);
+  const existingNumbers = await Number.find().lean().exec();
+  const currentWindow = existingNumbers.map((doc) => doc.value);
+
+  const newNumbers = numbers.filter((num) => !currentWindow.includes(num));
+
+  newNumbers.forEach(async (num) => {
+    if (currentWindow.length >= windowSize) {
+      await Number.deleteOne({ value: currentWindow.shift() });
+    }
+    await Number.create({ value: num });
+    currentWindow.push(num);
+  });
+
+  const updatedNumbers = await Number.find().lean().exec();
+  const updatedWindow = updatedNumbers.map((doc) => doc.value);
+  const average = updatedWindow.reduce((sum, num) => sum + num, 0) / updatedWindow.length;
+
+  return {
+    fetchedNumbers: numbers,
+    windowPrevState: currentWindow,
+    windowCurrState: updatedWindow,
+    avg: average.toFixed(2),
+  };
+};
+
+module.exports = { fetchAndStoreNumbers };
